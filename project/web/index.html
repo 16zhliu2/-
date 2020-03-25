@@ -1,0 +1,435 @@
+<!--@content 主页面-->
+<!--@anthor XiaoSheng-->
+<!--@date 2020/02/17-->
+<!--@version 0.1-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>知识管理系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+</head>
+<body>
+<style>
+    /* 去除页面加载时出现的花括号，凡在html的前面，并在html加载这个名字才有效*/
+    [v-cloak] {
+        display: none;
+    }
+</style>
+<div id="body_container">
+    <!--左边导航栏-->
+    <div id="main_panel">
+        <div id="directory">
+            <div id="first_level_directory">
+                <div id="first_level_directory_title">类别</div>
+                <div v-for="(folder, index) in directory" @click="chooseFolder(folder,index)"
+                     class="first_level_directory_cls">{{folder.folderName}}
+                </div>
+            </div>
+            <div id="second_level_directory">
+                <div id="second_level_directory_title">文件</div>
+                <div v-for="(file,index) in files" @click="chooseFile(file,index)" class="second_level_directory_cls">
+                    {{file.filename}}
+                </div>
+            </div>
+        </div>
+        <div id="main_net_container">
+            <div v-for="(netItem,index) in netList" @click="chooseNet(netItem,index)" class="main_net_label" >{{netItem.name}}</div>
+        </div>
+    </div>
+
+    <!--第二层页面 图层页面-->
+    <div id="map_panel" class="map_panel_slider" :style="[mapPanelRight]">
+        <div id="map_panel_divider"></div>
+        <div id="map_panel_nav">
+            <div id="map_panel_arrow" @click="closeMapPanel()"></div>
+        </div>
+        <div id="map_panel_container">
+            <div id="file_directory">
+                <div id="file_directory_title">{{fileTitle}}</div>
+                <div v-for="(item, itemIndex) in fileDirectory" :key="itemIndex">
+                    <div class="file_directory_parent">{{item.content}}</div>
+                    <div v-for="(child,index) in item.children"
+                         @click="chooseChapter(itemIndex,index)" class="file_directory_child">
+                        {{child.content}}
+                    </div>
+                </div>
+            </div>
+            <div id="canvasContainer"></div>
+        </div>
+    </div>
+    <!--第三层页面 文本页面-->
+    <div id="text_panel" class="text_panel_slider" :style="[textPanelRight]">
+        <div id="text_panel_divider"></div>
+        <div id="text_panel_nav">
+            <div id="text_panel_arrow" @click="closeTextPanel()"></div>
+        </div>
+        <div id="text_container">
+            <div id="text_content" v-html="textPanelText"></div>
+            <div class="next_last">
+                <div class="last_chapter" @click="chooseLastChapter()"><-上一章</div>
+                <div class="next_chapter" @click="chooseNextChapter()">下一章-></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--
+快捷方式
+<div id="shortcut_switch">
+    <div class="trigger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <div id="shortcut_panel" class="shortcut_panel_slider">
+        <div>收藏</div>
+    </div>
+</div>
+-->
+<script src="myVue.js"></script>
+<script src="topology.js"></script>
+<script type="text/javascript">
+    // $("#text_content").height = $("#text_container").height();
+
+</script>
+<style type="text/css">
+    /* 大屏幕,大于1024px */
+    @media screen and (min-width: 500px) {
+        #body_container{
+            width: 100%;
+            height: 100%;
+        }
+        #main_panel{
+            display: flex;
+            width:100%;
+            height:100%;
+        }
+        #directory {
+            display: flex;
+            width: 18%;
+        }
+        #main_net_container{
+            width: 80%;
+            height: 100%;
+            margin: 20px;
+            background: darkseagreen;
+        }
+
+        #second_level_directory_title,
+        #first_level_directory_title {
+            margin: 20px 8px 0 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: #0088ff;
+            color: #dddddd;
+            text-align: center;
+        }
+
+        .second_level_directory_cls,
+        .first_level_directory_cls {
+            margin: 8px 8px 8px 0;
+            padding: 10px;
+            background: #2299ff;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .second_level_directory_cls:hover,
+        .first_level_directory_cls:hover {
+            background: #6699ff;
+        }
+
+        .second_level_directory_cls:active,
+        .first_level_directory_cls:active {
+            background: #999999;
+        }
+
+        #first_level_directory,
+        #second_level_directory {
+            width: 50%;
+        }
+
+        .map_panel_slider {
+            display: flex;
+            position: fixed;
+            top: 0;
+            width: 80%;
+            height: 100%;
+            z-index: 100;
+            background: white;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .text_panel_slider {
+            display: flex;
+            position: fixed;
+            top: 0;
+            width: 67%;
+            height: 100%;
+            z-index: 200;
+            background: white;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .shortcut_panel_slider {
+            display: flex;
+            position: fixed;
+            top: 0;
+            right: -20%;
+            width: 20%;
+            height: 100%;
+            z-index: 300;
+            background: #0099ff;
+            transition: all 0.5s ease-in-out;
+        }
+
+        #main_panel_divider,
+        #map_panel_divider,
+        #text_panel_divider {
+            height: 100%;
+            width: 2px;
+            background: #0099ff;
+        }
+
+        #map_panel_nav,
+        #text_panel_nav {
+            height: 100%;
+            width: 22px;
+            display: flex;
+            align-items: center;
+        }
+
+        #map_panel_arrow,
+        #text_panel_arrow {
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid;
+            border-bottom: 2px solid;
+            border-color: #0099ff;
+            -webkit-transform: rotate(-45deg);
+            content: '';
+        }
+
+        #map_panel_arrow:hover,
+        #text_panel_arrow:hover {
+            border-right: 3px solid;
+            border-bottom: 3px solid;
+            border-color: red;
+        }
+
+        #map_panel_container {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            overflow: scroll;
+        }
+
+        #file_directory {
+            width: 20%;
+            height: 100%;
+        }
+
+        #file_directory_title {
+            background: #dddddd;
+            padding: 10px;
+        }
+
+        .file_directory_parent {
+            margin-top: 10px;
+            font-size: 15px;
+            font-weight: bold;
+
+        }
+
+        .file_directory_child {
+            padding: 5px;
+            font-size: 14px;
+            background: #dddddd;
+        }
+
+        .file_directory_child:hover {
+            padding: 4px;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        #canvasContainer {
+            margin: 10px;
+            width: min-content;
+            height: fit-content;
+            border: 2px dashed #999999;
+            display: block;
+        }
+
+        .canvasClass {
+            display: block;
+            background: #0099ff;
+            border: 2px dashed #999999;
+        }
+
+        #text_container {
+            width: 100%;
+            height: 100%;
+            margin: 10px;
+            padding: 10px;
+            background: #eeeeee;
+        }
+
+        #text_content {
+            margin: 10px;
+            width: 100%;
+            height: 650px;
+            overflow: scroll;
+            font-size: 14px;
+        }
+
+        .next_last {
+            margin-left: 20px;
+            margin-right: 20px;
+            width: 100%;
+        }
+
+        .last_chapter {
+            float: left;
+        }
+
+        .next_chapter {
+            float: right;
+            margin-right: 30px;
+        }
+
+        .last_chapter,
+        .next_chapter {
+            font-size: 16px;
+            color: #999999;
+        }
+
+        .last_chapter:hover,
+        .next_chapter:hover {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .code_container {
+            border: 1px solid #fff;
+            background: #222;
+			padding: 5px 8px;
+			margin:10px;
+            font-size: 13px;
+            color: #fff;
+            word-break: break-all;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+
+        .code_even_line {
+            padding: 2px 8px;
+            background: #999999;
+        }
+
+        .code_odd_line {
+            padding: 2px 8px;
+            background: #888888;
+        }
+
+        #shortcut_switch {
+            width: 100%;
+            position: relative;
+            left: 0;
+            transition: all 0.5s ease-in-out;
+            overflow-x: hidden;
+        }
+
+        .trigger {
+            width: 30px;
+            height: 30px;
+            float: right;
+            margin-right: 30px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .trigger span {
+            display: block;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #000000;
+            position: absolute;
+            opacity: 1;
+            transform: rotate(0);
+            transition: all 0.1s ease-in-out;
+        }
+
+        .trigger span:nth-child(1) {
+            top: 0;
+        }
+
+        .trigger span:nth-child(2) {
+            top: 6px;
+        }
+
+        .trigger span:nth-child(3) {
+            top: 12px;
+        }
+
+        .trigger-open span:nth-child(1) {
+            transform: rotate(45deg);
+            top: 6px;
+        }
+
+        .trigger-open span:nth-child(2) {
+            width: 0;
+        }
+
+        .trigger-open span:nth-child(3) {
+            transform: rotate(-45deg);
+            top: 6px;
+        }
+    }
+
+    /*小屏幕,小于1024px*/
+    @media screen and (max-width: 500px) {
+        .text_panel_slider {
+            position: fixed;
+            left: 0;
+            bottom: -80%;
+            width: 100%;
+            height: 80%;
+            z-index: 100;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .open {
+            bottom: 0;
+        }
+
+        #text_panel_divider {
+            width: 100%;
+            height: 1px;
+            background: #aaa;
+            box-shadow: 0px 0px 2px #000;
+        }
+
+        #text_panel_nav {
+            width: 100%;
+            height: 22px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #text_panel_arrow {
+            height: 20px;
+            width: 20px;
+            border-right: 2px solid #aaa;
+            border-bottom: 2px solid #aaa;
+            -webkit-transform: rotate(45deg);
+            content: '';
+        }
+    }
+
+</style>
+</body>
+</html>
